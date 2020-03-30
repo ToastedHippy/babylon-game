@@ -19,5 +19,9 @@
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
     "webpack-dev-server": "^3.10.1"
+  },
+  "dependencies": {
+    "clean-webpack-plugin": "^3.0.0",
+    "webpack-bundle-analyzer": "^3.6.1"
   }
 }

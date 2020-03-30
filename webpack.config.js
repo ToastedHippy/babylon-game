@@ -1,6 +1,8 @@
 const path = require('path');
 const HtmlTemplatePlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
+const {CleanWebpackPlugin} = require('clean-webpack-plugin');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 module.exports = {
     entry: './src/index.ts',
@@ -33,6 +35,8 @@ module.exports = {
         new HtmlTemplatePlugin({
             template: "./src/index.html"
         }),
+        new CleanWebpackPlugin(),
+        // new BundleAnalyzerPlugin(),
         new CopyPlugin([
             {from: 'src/assets', to: 'assets'},
             {from: 'src/styles', to: 'styles'},
