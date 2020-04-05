@@ -21,6 +21,10 @@
     "webpack-dev-server": "^3.10.1"
   },
   "dependencies": {
+    "@babylonjs/core": "^4.1.0",
+    "@babylonjs/loaders": "^4.1.0",
+    "@babylonjs/materials": "^4.1.0",
+    "cannon": "schteppe/cannon.js",
     "clean-webpack-plugin": "^3.0.0",
     "webpack-bundle-analyzer": "^3.6.1"
   }

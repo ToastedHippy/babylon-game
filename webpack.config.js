@@ -3,6 +3,7 @@ const HtmlTemplatePlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+const webpack = require('webpack');
 
 module.exports = {
     entry: './src/index.ts',
@@ -40,7 +41,13 @@ module.exports = {
         new CopyPlugin([
             {from: 'src/assets', to: 'assets'},
             {from: 'src/styles', to: 'styles'},
-        ])
-    ]
+        ]),
+        new webpack.ProvidePlugin({
+            'Ammo': path.resolve(path.join(__dirname, 'src/ammo/ammo'))
+        })
+    ],
+    node: {
+        fs: 'empty'
+    }
 
 };
