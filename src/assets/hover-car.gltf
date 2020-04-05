@@ -69,7 +69,7 @@
         },
         {
             "mesh" : 1,
-            "name" : "hover wheel",
+            "name" : "hoverEngineFR",
             "scale" : [
                 0.35024145245552063,
                 0.35024145245552063,
@@ -83,7 +83,7 @@
         },
         {
             "mesh" : 2,
-            "name" : "Sphere.001",
+            "name" : "hoverEngineBR",
             "scale" : [
                 0.35024145245552063,
                 0.35024145245552063,
@@ -97,7 +97,7 @@
         },
         {
             "mesh" : 3,
-            "name" : "Sphere.002",
+            "name" : "hoverEngineBL",
             "scale" : [
                 0.35024145245552063,
                 0.35024145245552063,
@@ -111,7 +111,7 @@
         },
         {
             "mesh" : 4,
-            "name" : "Sphere.003",
+            "name" : "hoverEngineFL",
             "scale" : [
                 0.35024145245552063,
                 0.35024145245552063,

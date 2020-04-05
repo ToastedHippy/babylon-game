@@ -1,4 +1,4 @@
-import {Engine, Scene, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder} from '@babylonjs/core';
+import {Engine, Scene, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder, Ray, RayHelper, AbstractMesh} from '@babylonjs/core';
 import {GridMaterial} from '@babylonjs/materials';
 
 import "@babylonjs/core/Meshes/meshBuilder";
@@ -8,7 +8,8 @@ import "@babylonjs/loaders/glTF";
 let canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 let engine = new Engine(canvas);
 let scene = new Scene(engine);
-let camera = new ArcRotateCamera('camera', 0, 1, 12, Vector3.Zero(), scene);
+let camera = new ArcRotateCamera('camera', degToRad(-90), 1, 12, Vector3.Zero(), scene);
+
 let material = new GridMaterial("grid", scene);
 let assetsManager = new AssetsManager(scene);
 
@@ -35,12 +36,22 @@ hovercarTask.onSuccess =t => {
     console.log(t.loadedMeshes)
     let newMeshes = t.loadedMeshes;
     var physicsRoot = new Mesh("physicsRoot", scene);
+    let car = t.loadedMeshes[0];
+    let hoverEngines: AbstractMesh[] = [];
+    
+    t.loadedMeshes[0].rotation = new Vector3(0, 0, 0);
 
     newMeshes.forEach((m, i)=>{
         if(m.name.indexOf("Collider") != -1){
             m.isVisible = false
             physicsRoot.addChild(m)
         }
+
+        if(m.name.includes('hoverEngine')) {
+            hoverEngines.push(m);
+        }
+
+        m.isPickable = false;
     })
 
     // Add all root nodes within the loaded gltf to the physics root
@@ -62,9 +73,50 @@ hovercarTask.onSuccess =t => {
 
     
     
-    physicsRoot.physicsImpostor = new PhysicsImpostor(physicsRoot, PhysicsImpostor.NoImpostor, { mass: 30 }, scene);
+    physicsRoot.physicsImpostor = new PhysicsImpostor(physicsRoot, PhysicsImpostor.NoImpostor, { mass: 10 }, scene);
 
-    physicsRoot.position = new Vector3(0, 2 , 0);
+    physicsRoot.position = new Vector3(0, 3, 0);
+
+    function castRay(mesh: AbstractMesh){       
+        var origin = mesh.getAbsolutePosition();
+	
+	    var forward = new Vector3(0,-1,0);		
+	    forward = Vector3.TransformCoordinates(forward, mesh.getWorldMatrix());
+	
+	    var direction = forward.subtract(origin);
+	    direction = Vector3.Normalize(direction);
+	
+	    var length = 5;
+	
+	    var ray = new Ray(origin, direction, length);
+
+		let rayHelper = new RayHelper(ray);		
+		// rayHelper.show(scene);		
+
+        var hit = scene.pickWithRay(ray);
+
+        if (hit && hit.pickedMesh){
+		   pulse(mesh, hit.distance, length);
+	    }
+    }
+
+    scene.registerBeforeRender(function () {
+        for (let he of hoverEngines) {
+            castRay(he);
+        }
+    });
+
+
+    var forceDirection = new Vector3(0, 1, 0);
+    var contactLocalRefPoint = Vector3.Zero();
+
+    function pulse(mesh: AbstractMesh, distance: number, max: number) {
+        let forceMagnitude = (1 - distance / max) * 35;
+        if (forceMagnitude > 0 && physicsRoot.physicsImpostor){
+            console.log(mesh.name, forceDirection.scale(forceMagnitude).y)
+            physicsRoot.physicsImpostor.applyForce(forceDirection.scale(forceMagnitude), mesh.getAbsolutePosition());
+        }
+    }
     
 }
 
