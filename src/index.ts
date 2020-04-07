@@ -1,4 +1,4 @@
-import {Engine, Scene, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder, Ray, RayHelper, AbstractMesh, PickingInfo, ActionManager, ExecuteCodeAction} from '@babylonjs/core';
+import {Engine, Scene, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder, Ray, RayHelper, AbstractMesh, PickingInfo, ActionManager, ExecuteCodeAction, FollowCamera, NullEngine} from '@babylonjs/core';
 import {GridMaterial} from '@babylonjs/materials';
 
 import "@babylonjs/core/Meshes/meshBuilder";
@@ -8,12 +8,18 @@ import "@babylonjs/loaders/glTF";
 let canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 let engine = new Engine(canvas);
 let scene = new Scene(engine);
-let camera = new ArcRotateCamera('camera', degToRad(-90), 1, 20, Vector3.Zero(), scene);
+let camera = new FollowCamera('camera',new Vector3(0, 10, -10), scene);
+
+camera.radius = -25;
+camera.heightOffset = 15;
+camera.rotationOffset = 0;
+camera.cameraAcceleration = 0.01;	
+camera.maxCameraSpeed = 10;
+camera.attachControl(canvas);
 
 let material = new GridMaterial("grid", scene);
 let assetsManager = new AssetsManager(scene);
 
-camera.attachControl(canvas);
 let gravityVector = new Vector3(0,-9.81, 0);
 scene.enablePhysics(gravityVector, new AmmoJSPlugin());
 
@@ -48,6 +54,11 @@ hovercarTask.onSuccess =t => {
     var physicsRoot = new Mesh("physicsRoot", scene);
     let car = t.loadedMeshes[0];
     let hoverEngines: AbstractMesh[] = [];
+    let frHover: AbstractMesh | null = null;
+    let flHover: AbstractMesh | null = null;
+    let brHover: AbstractMesh | null = null;
+    let blHover: AbstractMesh | null = null;
+    camera.lockedTarget = physicsRoot;
     
     t.loadedMeshes[0].rotation = new Vector3(0, 0, 0);
 
@@ -57,11 +68,19 @@ hovercarTask.onSuccess =t => {
             physicsRoot.addChild(m)
         }
 
-        if(m.name.includes('fakeHoverEngine')) {
+        if(m.name.includes('hoverEngine')) {
             hoverEngines.push(m);
-            m.isVisible = false;
-            physicsRoot.addChild(m);
-            m.physicsImpostor = new PhysicsImpostor(m, PhysicsImpostor.BoxImpostor, {mass: 0.1}, scene);
+            if (m.name.includes('FR'))
+                frHover = m;
+            else if (m.name.includes('FL'))
+                flHover = m;
+            else if (m.name.includes('BL'))
+                blHover = m;
+            else if (m.name.includes('BR'))
+                brHover = m;
+            // m.isVisible = false;
+            // physicsRoot.addChild(m);
+            // m.physicsImpostor = new PhysicsImpostor(m, PhysicsImpostor.BoxImpostor, {mass: 0.1}, scene);
         }
 
         m.isPickable = false;
@@ -105,7 +124,8 @@ hovercarTask.onSuccess =t => {
 
         var hit = scene.pickWithRay(ray);
 
-        if (hit && hit.hit){
+        if (hit && hit.hit && hit.pickedMesh && hit.pickedMesh.name !== 'ray'){
+            // console.log(hit.pickedMesh)
 		   pulse(mesh, hit.distance, length);
 	    }
     }
@@ -117,7 +137,7 @@ hovercarTask.onSuccess =t => {
 
         let t = physicsRoot.physicsImpostor?.getAngularVelocity();
         if (t) {
-            physicsRoot.physicsImpostor?.setAngularVelocity(t.scale(0.05))
+            physicsRoot.physicsImpostor?.setAngularVelocity(t.scale(0.01))
         }
             
     });
@@ -145,40 +165,64 @@ hovercarTask.onSuccess =t => {
         
         //fake drag
         if (v) {
-            physicsRoot.physicsImpostor?.applyForce(v.scale(-1).scale(50), physicsRoot.getAbsolutePosition());
+            physicsRoot.physicsImpostor?.applyForce(v.scale(-1).scale(40), physicsRoot.getAbsolutePosition());
         }
-
-        var physicsRootOrigin = physicsRoot.getAbsolutePosition();
-        let impulseP = 0.02;
-        scene.onBeforeRenderObservable.add(()=>{
-            if(inputMap["w"] || inputMap["ArrowUp"]){
-                
-                physicsRoot.physicsImpostor?.applyImpulse(
-                    Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Forward(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
-                    physicsRootOrigin
-                )
-            } 
-            if(inputMap["a"] || inputMap["ArrowLeft"]){
-                physicsRoot.physicsImpostor?.applyImpulse(
-                    Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Left(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
-                    physicsRootOrigin
-                )
-            } 
-            if(inputMap["s"] || inputMap["ArrowDown"]){
-                physicsRoot.physicsImpostor?.applyImpulse(
-                    Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Backward(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
-                    physicsRootOrigin
-                )
-            } 
-            if(inputMap["d"] || inputMap["ArrowRight"]){
-                physicsRoot.physicsImpostor?.applyImpulse(
-                    Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Right(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
-                    physicsRootOrigin
-                )
-            }    
-        })
         
     }
+
+    scene.onBeforeRenderObservable.add(()=>{
+        var physicsRootOrigin = physicsRoot.getAbsolutePosition();
+        let impulseP = 100;
+
+        if(inputMap["w"] || inputMap["ArrowUp"]){
+            
+            physicsRoot.physicsImpostor?.applyImpulse(
+                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Forward(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
+                physicsRootOrigin
+            )
+        } 
+        if((inputMap["a"] || inputMap["ArrowLeft"]) && frHover && blHover && physicsRoot){
+
+            let fdirection = Vector3.Normalize(vecToLocal(Vector3.Left(), frHover).subtract(frHover.getAbsolutePosition()));
+            let bdirection = Vector3.Normalize(vecToLocal(Vector3.Right(), blHover).subtract(blHover.getAbsolutePosition()));
+            
+            physicsRoot.physicsImpostor?.applyImpulse(
+                fdirection.scale(impulseP),
+                frHover.getAbsolutePosition()
+            );
+            physicsRoot.physicsImpostor?.applyImpulse(
+                bdirection.scale(impulseP),
+                blHover.getAbsolutePosition()
+            )
+        } 
+        if(inputMap["s"] || inputMap["ArrowDown"]){
+            physicsRoot.physicsImpostor?.applyImpulse(
+                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Backward(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP),
+                physicsRootOrigin
+            )
+        } 
+        if((inputMap["d"] || inputMap["ArrowRight"]) && flHover && brHover){
+            let fdirection = Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Right(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP);
+            let bdirection = Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Left(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(impulseP);
+    
+            physicsRoot.physicsImpostor?.applyImpulse(
+                fdirection,
+                flHover.getAbsolutePosition()
+            );
+            physicsRoot.physicsImpostor?.applyImpulse(
+                bdirection,
+                brHover.getAbsolutePosition()
+            )
+        }
+        
+        if(inputMap[" "]){
+            physicsRoot.physicsImpostor?.applyImpulse(
+                Vector3.Normalize(
+                    Vector3.TransformCoordinates(Vector3.Up(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(50),
+                physicsRootOrigin
+            )
+        }
+    })
     
 }
 
@@ -186,4 +230,10 @@ assetsManager.load();
 
 function degToRad(degree: number) {
     return degree / (180 / Math.PI);
+}
+
+function vecToLocal(vector: Vector3, mesh: AbstractMesh){
+    var m = mesh.getWorldMatrix();
+    var v = Vector3.TransformCoordinates(vector, m);
+    return v;		 
 }
