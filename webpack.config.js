@@ -43,7 +43,8 @@ module.exports = {
             {from: 'src/styles', to: 'styles'},
         ]),
         new webpack.ProvidePlugin({
-            'Ammo': path.resolve(path.join(__dirname, 'src/ammo/ammo'))
+            'Ammo': path.resolve(path.join(__dirname, 'src/ammo/ammo')),
+            'CANNON': path.resolve(path.join(__dirname, 'src/cannon/cannon')),
         })
     ],
     node: {
