@@ -1,4 +1,4 @@
-import {Engine, Scene, StandardMaterial, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder, Ray, RayHelper, AbstractMesh, PickingInfo, ActionManager, ExecuteCodeAction, FollowCamera, NullEngine, BoxBuilder} from 'babylonjs';
+import {Engine, Scene, StandardMaterial, ShadowGenerator, FreeCamera, Vector3, ArcRotateCamera, HemisphericLight, Mesh, AssetsManager, PhysicsImpostor, AmmoJSPlugin, MeshBuilder, Ray, RayHelper, AbstractMesh, PickingInfo, ActionManager, ExecuteCodeAction, FollowCamera, NullEngine, BoxBuilder, DirectionalLight} from 'babylonjs';
 import {GridMaterial} from 'babylonjs-materials';
 
 import "babylonjs-loaders";
@@ -16,21 +16,27 @@ camera.cameraAcceleration = 0.01;
 camera.maxCameraSpeed = 10;
 camera.attachControl(canvas);
 
-let material = new GridMaterial("grid", scene);
+
 let assetsManager = new AssetsManager(scene);
 
 let gravityVector = new Vector3(0,-9.81, 0);
 scene.enablePhysics(gravityVector, new AmmoJSPlugin());
 
-let hlight = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
+let hlight = new HemisphericLight("light1", new Vector3(0.2, 0.1, 0.2), scene);
+    hlight.intensity = 0.5
+var light = new DirectionalLight("dir01", new Vector3(-1, -1, -1), scene);
+    light.position = new Vector3(20, 40, 20);
+    light.intensity = 0.5
 
-let ground = Mesh.CreateGround("ground1", 100, 100, 2, scene);
-ground.material = material;
-ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9, friction: 1 }, scene);
-
-engine.runRenderLoop(() => {
-    scene.render();
-});
+    var shadowGenerator = new ShadowGenerator(1024, light);
+    
+    let ground = Mesh.CreateGround("ground1", 100, 100, 2, scene);
+    // let material = new StandardMaterial("grid", scene);
+    let material = new GridMaterial("grid", scene);
+    // material.diffuseColor = new BABYLON.Color3(0,1,0)   
+    ground.material = material;
+    ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9, friction: 1 }, scene);
+    ground.receiveShadows = true;
 
 // Keyboard events
 var inputMap: {[k: string]: boolean} = {};
@@ -54,6 +60,8 @@ var box4 = MeshBuilder.CreateBox("fakeHoverEngineFL", {size:0.25}, scene);
 var box5 = MeshBuilder.CreateBox("fakeHoverEngineCameraTarget", {size:0.25}, scene);
 
 let root = new Mesh('', scene);
+shadowGenerator.addShadowCaster(box);
+
 
 root.addChild(box);
 root.addChild(box1);
@@ -78,6 +86,12 @@ var matBox1 = new StandardMaterial("matBox", scene);
  matBox1.diffuseColor = new BABYLON.Color3(0, 0, 1)
  box1.material = matBox1;
  box4.material = matBox1;
+
+ let needStabilize = true;
+
+ engine.runRenderLoop(() => {
+    scene.render();
+});
 
 // let hovercarTask = assetsManager.addMeshTask('hoverCar task', '', 'assets/', 'hover-car.gltf');
 // hovercarTask.onSuccess =t => {
@@ -151,7 +165,7 @@ var matBox1 = new StandardMaterial("matBox", scene);
 	    var direction = forward.subtract(origin);
 	    direction = Vector3.Normalize(direction);
 	
-	    var length = 1;
+	    var length = 5;
 	
 	    var ray = new Ray(origin, direction, length);
 
@@ -162,7 +176,14 @@ var matBox1 = new StandardMaterial("matBox", scene);
 
         if (hit && hit.hit && hit.pickedMesh && hit.pickedMesh.name !== 'ray'){
             // console.log(hit.pickedMesh)
-		   pulse(mesh, hit.distance, length);
+           pulse(mesh, hit.distance, 0);
+           
+           needStabilize = hit.distance < 1;
+
+           if (needStabilize) {
+            stabilize(mesh, physicsRoot, box)
+           }
+           
 	    }
     }
 
@@ -201,7 +222,7 @@ var matBox1 = new StandardMaterial("matBox", scene);
     var contactLocalRefPoint = Vector3.Zero();
 
     function pulse(mesh: AbstractMesh, distance: number, max: number) {
-    
+        
 
         var origin = mesh.getAbsolutePosition();
 	
@@ -211,9 +232,9 @@ var matBox1 = new StandardMaterial("matBox", scene);
 	    var direction = forward.subtract(origin);
 	    direction = Vector3.Normalize(direction);
 
-        let formula = 1 - distance / max;
-
-        let forceMagnitude = formula * 900;
+        let formula = 200 / distance;
+        
+        let forceMagnitude = formula;
         
         physicsRoot.physicsImpostor?.applyForce(direction.scale(forceMagnitude), mesh.getAbsolutePosition());
         
@@ -221,12 +242,13 @@ var matBox1 = new StandardMaterial("matBox", scene);
 
     scene.onBeforeRenderObservable.add(()=>{
         var physicsRootOrigin = physicsRoot.getAbsolutePosition();
-        let impulseP = 50;
+        let touque = 50;
+        let f = 30
 
         if(inputMap["w"] || inputMap["ArrowUp"]){
             
             physicsRoot.physicsImpostor?.applyImpulse(
-                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Forward(), box.getWorldMatrix()).subtract(box.getAbsolutePosition())).scale(impulseP),
+                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Forward(), box.getWorldMatrix()).subtract(box.getAbsolutePosition())).scale(f),
                 box.getAbsolutePosition()
             )
         } 
@@ -236,17 +258,17 @@ var matBox1 = new StandardMaterial("matBox", scene);
             let bdirection = Vector3.Normalize(vecToLocal(Vector3.Right(), blHover).subtract(physicsRoot.getAbsolutePosition()));
             
             physicsRoot.physicsImpostor?.applyImpulse(
-                fdirection.scale(impulseP),
+                fdirection.scale(touque),
                 frHover.getAbsolutePosition()
             );
             physicsRoot.physicsImpostor?.applyImpulse(
-                bdirection.scale(impulseP),
+                bdirection.scale(touque),
                 blHover.getAbsolutePosition()
             )
         } 
         if(inputMap["s"] || inputMap["ArrowDown"]){
             physicsRoot.physicsImpostor?.applyImpulse(
-                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Backward(), box.getWorldMatrix()).subtract(box.getAbsolutePosition())).scale(impulseP),
+                Vector3.Normalize(Vector3.TransformCoordinates(Vector3.Backward(), box.getWorldMatrix()).subtract(box.getAbsolutePosition())).scale(f),
                 box.getAbsolutePosition()
             )
         } 
@@ -255,16 +277,17 @@ var matBox1 = new StandardMaterial("matBox", scene);
             let bdirection = Vector3.Normalize(vecToLocal(Vector3.Left(), brHover).subtract(physicsRootOrigin));
     
             physicsRoot.physicsImpostor?.applyImpulse(
-                fdirection.scale(impulseP),
+                fdirection.scale(touque),
                 flHover.getAbsolutePosition()
             );
             physicsRoot.physicsImpostor?.applyImpulse(
-                bdirection.scale(impulseP),
+                bdirection.scale(touque),
                 brHover.getAbsolutePosition()
             )
         }
         
         if(inputMap[" "]){
+            needStabilize = false;
             physicsRoot.physicsImpostor?.applyImpulse(
                 Vector3.Normalize(
                     Vector3.TransformCoordinates(Vector3.Up(), physicsRoot.getWorldMatrix()).subtract(physicsRootOrigin)).scale(50),
@@ -285,4 +308,25 @@ function vecToLocal(vector: Vector3, mesh: AbstractMesh){
     var m = mesh.getWorldMatrix();
     var v = Vector3.TransformCoordinates(vector, m);
     return v;		 
+}
+
+function stabilize(he: AbstractMesh, phRoot: AbstractMesh, box: AbstractMesh) {
+    
+    let v = phRoot.physicsImpostor?.physicsBody ? phRoot.physicsImpostor?.getLinearVelocity() : null;
+
+    if (v) {
+        // console.log('pos', physicsRoot.getAbsolutePosition())
+        let length = v.y;
+        
+        let dragMagnitude = new Vector3(0, -v.y, 0).scale(Math.abs(length) * 80);
+        
+        phRoot.physicsImpostor?.applyForce(dragMagnitude, box.getAbsolutePosition());
+        // var ray = new Ray(box.getAbsolutePosition(), normDir.scale(dragMagnitude), 20);
+
+        // let rayHelper = new RayHelper(ray);		
+        // rayHelper.show(scene);
+
+        // setTimeout(() => rayHelper.dispose(), 500)
+    }
+    
 }
