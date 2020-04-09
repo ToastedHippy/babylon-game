@@ -89,6 +89,11 @@ var matBox1 = new StandardMaterial("matBox", scene);
 
  let needStabilize = true;
 
+ let obsticleBox = MeshBuilder.CreateBox('obstB1', {width: 10, height: 1, depth: 1}, scene);
+ obsticleBox.physicsImpostor = new PhysicsImpostor(obsticleBox, PhysicsImpostor.BoxImpostor, {mass: 1, friction: 1}, scene);
+ obsticleBox.position = new Vector3(0, 0.5, 2);
+
+
  engine.runRenderLoop(() => {
     scene.render();
 });
@@ -105,9 +110,9 @@ var matBox1 = new StandardMaterial("matBox", scene);
     let flHover: AbstractMesh | null = box4;
     let brHover: AbstractMesh | null = box2;
     let blHover: AbstractMesh | null = box3;
-    
+
     camera.lockedTarget = box5;
-    
+
     // t.loadedMeshes[0].rotation = new Vector3(0, 0, 0);
 
     // newMeshes.forEach((m, i)=>{
@@ -156,34 +161,37 @@ var matBox1 = new StandardMaterial("matBox", scene);
     physicsRoot.physicsImpostor = new PhysicsImpostor(physicsRoot, PhysicsImpostor.NoImpostor, { mass: 100, friction: 1 }, scene);
     physicsRoot.position = new Vector3(0, 2, 0);
 
-    function castRay(mesh: AbstractMesh){       
+    function castRay(mesh: AbstractMesh){
         var origin = mesh.getAbsolutePosition();
-	
-	    var forward = new Vector3(0,-1,0);		
+
+	    var forward = new Vector3(0,-1,0);
 	    forward = Vector3.TransformCoordinates(forward, mesh.getWorldMatrix());
-	
+
 	    var direction = forward.subtract(origin);
 	    direction = Vector3.Normalize(direction);
-	
-	    var length = 5;
-	
+
+	    var length = 7;
+
 	    var ray = new Ray(origin, direction, length);
 
-		let rayHelper = new RayHelper(ray);		
-		// rayHelper.show(scene);		
+		let rayHelper = new RayHelper(ray);
+		// rayHelper.show(scene);
 
         var hit = scene.pickWithRay(ray);
 
         if (hit && hit.hit && hit.pickedMesh && hit.pickedMesh.name !== 'ray'){
             // console.log(hit.pickedMesh)
-           pulse(mesh, hit.distance, 0);
-           
-           needStabilize = hit.distance < 1;
+
+           if (hit.distance < 2) {
+               pulse(mesh, hit.distance, 2);
+               needStabilize = true;
+           }
+
 
            if (needStabilize) {
             stabilize(mesh, physicsRoot, box)
            }
-           
+
 	    }
     }
 
@@ -199,22 +207,22 @@ var matBox1 = new StandardMaterial("matBox", scene);
 
         //fake drag
         let v = physicsRoot.physicsImpostor?.physicsBody ? physicsRoot.physicsImpostor?.getLinearVelocity() : null;
-        // if (v) {
-        //     // console.log('pos', physicsRoot.getAbsolutePosition())
-        //     let length = v.length();
-        //     let normDir = v.normalizeToNew();
+        if (v) {
+            // console.log('pos', physicsRoot.getAbsolutePosition())
+            let length = v.length();
+            let normDir = v.normalizeToNew();
             
-        //     normDir.negateInPlace()
-        //     let dragMagnitude = Math.pow(length, 2) * 2;
+            normDir.negateInPlace()
+            let dragMagnitude = Math.pow(length, 2) * 10;
             
-        //     physicsRoot.physicsImpostor?.applyForce(normDir.scale(dragMagnitude), box.getAbsolutePosition());
-        //     // var ray = new Ray(box.getAbsolutePosition(), normDir.scale(dragMagnitude), 20);
+            physicsRoot.physicsImpostor?.applyForce(normDir.scale(dragMagnitude), box.getAbsolutePosition());
+            // var ray = new Ray(box.getAbsolutePosition(), normDir.scale(dragMagnitude), 20);
 
-        //     // let rayHelper = new RayHelper(ray);		
-        //     // rayHelper.show(scene);
+            // let rayHelper = new RayHelper(ray);
+            // rayHelper.show(scene);
 
-        //     // setTimeout(() => rayHelper.dispose(), 500)
-        // }
+            // setTimeout(() => rayHelper.dispose(), 500)
+        }
             
     });
 
@@ -222,27 +230,27 @@ var matBox1 = new StandardMaterial("matBox", scene);
     var contactLocalRefPoint = Vector3.Zero();
 
     function pulse(mesh: AbstractMesh, distance: number, max: number) {
-        
+
 
         var origin = mesh.getAbsolutePosition();
-	
-	    var forward = new Vector3(0,1,0);		
+
+	    var forward = new Vector3(0,1,0);
 	    forward = Vector3.TransformCoordinates(forward, mesh.getWorldMatrix());
-	
+
 	    var direction = forward.subtract(origin);
 	    direction = Vector3.Normalize(direction);
 
-        let formula = 200 / distance;
-        
-        let forceMagnitude = formula;
-        
+        let formula = 1 - distance / max;
+
+        let forceMagnitude = formula * 900;
+
         physicsRoot.physicsImpostor?.applyForce(direction.scale(forceMagnitude), mesh.getAbsolutePosition());
-        
+
     }
 
     scene.onBeforeRenderObservable.add(()=>{
         var physicsRootOrigin = physicsRoot.getAbsolutePosition();
-        let touque = 50;
+        let touque = 40;
         let f = 30
 
         if(inputMap["w"] || inputMap["ArrowUp"]){
