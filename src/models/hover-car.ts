@@ -5,9 +5,10 @@ import { Scene, PhysicsImpostor, AbstractMesh, Mesh, MeshBuilder, Vector3, Stand
 export class HoverCar {
 
     static hoverHeight: number = 2;
-    static thrustMagnitude: number = 40;
-    static torqueMagnitude: number = 8;
-    static jumpMagnitude: number = 200;
+    static thrustMagnitude: number = 0.2;
+    static torqueMagnitude: number = 0.07;
+    static jumpMagnitude: number = 1;
+    static carMass: number = 1000;
 
     private _physicsRoot: AbstractMesh;
     private _scene: Scene;
@@ -16,11 +17,16 @@ export class HoverCar {
     private _hoverEngineBR: AbstractMesh;
     private _hoverEngineBL: AbstractMesh;
     private _body: AbstractMesh;
+    private _cameraAnchor: AbstractMesh;
     private _inputMap: {[k: string]: boolean} = {};
 
     private _stabilizationEnabled: boolean = false;
 
-    get body() {
+    get cameraAnchor() {
+        return this._cameraAnchor;
+    }
+
+    get shadowCaster() {
         return this._body;
     }
 
@@ -54,6 +60,9 @@ export class HoverCar {
         this._hoverEngineFL = MeshBuilder.CreateBox("hoverEngineFL", {size:0.25}, this._scene);
         this._hoverEngineBR = MeshBuilder.CreateBox("hoverEngineBR", {size:0.25}, this._scene);
         this._hoverEngineBL = MeshBuilder.CreateBox("hoverEngineBL", {size:0.25}, this._scene);
+        this._cameraAnchor = MeshBuilder.CreateBox("cameraAncor", {size:0.1}, this._scene);
+        // this._cameraAnchor.position.y = 3;
+        this._cameraAnchor.isVisible = false;
         
         
         let collider = MeshBuilder.CreateBox("collider", {width: 1, height: 0.5, depth: 2}, this._scene);
@@ -78,6 +87,7 @@ export class HoverCar {
         this._body.addChild(this._hoverEngineFL);
         this._body.addChild(this._hoverEngineBR);
         this._body.addChild(this._hoverEngineBL);
+        this._body.addChild(this.cameraAnchor);
         
         this._body.isPickable = false;
         this._body.getChildMeshes().forEach(m => m.isPickable = false);
@@ -92,7 +102,7 @@ export class HoverCar {
         this._physicsRoot.physicsImpostor = new PhysicsImpostor(
             this._physicsRoot,
             PhysicsImpostor.NoImpostor,
-            { mass: 100, friction: 1 },
+            { mass: HoverCar.carMass, friction: 1 },
             this._scene
         )
 
@@ -179,7 +189,7 @@ export class HoverCar {
         let direction = Vector3.Normalize(
             vecToLocal(Vector3.Up(), hoverEngine).subtract(contactPoint)
         );
-        let forceMagnitude = (1 - distance / HoverCar.hoverHeight) * 900;
+        let forceMagnitude = (1 - distance / HoverCar.hoverHeight) * HoverCar.carMass * 10;
         let force = direction.scale(forceMagnitude);
 
         this._physicsRoot.physicsImpostor?.applyForce(force, contactPoint);
@@ -190,7 +200,7 @@ export class HoverCar {
         let contactPoint = this._body.getAbsolutePosition();
     
         if (v) {
-            let magnitude = Math.abs(v.y) * 80;
+            let magnitude = Math.abs(v.y) * 0.8 * HoverCar.carMass;
             let force = new Vector3(0, -v.y, 0).scale(magnitude);
 
             this._physicsRoot.physicsImpostor?.applyForce(force, contactPoint);
@@ -203,7 +213,7 @@ export class HoverCar {
         direction.normalize();
         let force = vecToLocal(direction, this._body)
             .subtract(contactPoint)
-            .scale(HoverCar.thrustMagnitude)
+            .scale(HoverCar.thrustMagnitude * HoverCar.carMass)
 
         this._physicsRoot.applyImpulse(force, contactPoint)
     }
@@ -213,14 +223,15 @@ export class HoverCar {
         let hoverEngineB = clockWise ? this._hoverEngineBR : this._hoverEngineBL; 
         let fDirection = clockWise ? Vector3.Right() : Vector3.Left();
         let bDirection = fDirection.negate();
+        let magnitude = HoverCar.torqueMagnitude * HoverCar.carMass;
 
         let fForce = Vector3.Normalize(
             vecToLocal(fDirection, hoverEngineF).subtract(this._body.getAbsolutePosition())
-        ).scale(HoverCar.torqueMagnitude)
+        ).scale(magnitude)
 
         let bForce = Vector3.Normalize(
             vecToLocal(bDirection, hoverEngineB).subtract(this._body.getAbsolutePosition())
-        ).scale(HoverCar.torqueMagnitude)
+        ).scale(magnitude)
 
         this._physicsRoot.physicsImpostor?.applyImpulse(fForce, hoverEngineF.getAbsolutePosition())
         this._physicsRoot.physicsImpostor?.applyImpulse(bForce, hoverEngineB.getAbsolutePosition())
@@ -229,8 +240,9 @@ export class HoverCar {
     private jump() {
         this._stabilizationEnabled = false;
         setTimeout(() => this._stabilizationEnabled = true, 300);
+        let magnitude = HoverCar.jumpMagnitude * HoverCar.carMass;
         this._physicsRoot.physicsImpostor?.applyImpulse(
-            Vector3.Normalize(vecToLocal(Vector3.Up(), this._body).subtract(this._body.getAbsolutePosition())).scale(HoverCar.jumpMagnitude),
+            Vector3.Normalize(vecToLocal(Vector3.Up(), this._body).subtract(this._body.getAbsolutePosition())).scale(magnitude),
             this._body.getAbsolutePosition()
         )
     }
