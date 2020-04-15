@@ -3,7 +3,7 @@ import { AssetsLoader, Assets } from "./assets-loader";
 
 
 @Assets({
-    meshes: [{key: 'hoverCar', 'url': 'hover-car.gltf'}]
+    meshes: [{key: 'hoverCar', url: 'hover-car.gltf'}]
 })
 export class HoverCar {
 
@@ -20,13 +20,13 @@ export class HoverCar {
     private _hoverEngineBR: AbstractMesh;
     private _hoverEngineBL: AbstractMesh;
     private _body: AbstractMesh;
-    private _cameraAnchor: AbstractMesh;
+    private _cameraTarget: AbstractMesh;
     private _inputMap: {[k: string]: boolean} = {};
 
-    private _stabilizationEnabled: boolean = false;
+    private _verticalStabilizationEnabled: boolean = false;
 
-    get cameraAnchor() {
-        return this._cameraAnchor;
+    get cameraTarget() {
+        return this._cameraTarget;
     }
 
     get shadowCaster() {
@@ -57,10 +57,13 @@ export class HoverCar {
         frontHoverEngineM.diffuseColor = new BABYLON.Color3(0, 0, 1)
 
         this._physicsRoot = new Mesh('p_root', this._scene);
-        this._cameraAnchor = MeshBuilder.CreateBox("cameraAncor", {size:0.1}, this._scene);
-        this._cameraAnchor.isVisible = false;
+        this._cameraTarget = MeshBuilder.CreateBox("cameraAncor", {size:0.1}, this._scene);
+        this._cameraTarget.isVisible = false;
 
-        this._body = new Mesh('fake_body', this._scene);
+        
+        this._body = new Mesh('_body', this._scene);
+        
+
         this._hoverEngineFR = new Mesh("fake_hoverEngineFR", this._scene);
         this._hoverEngineFL = new Mesh("fake_hoverEngineFL", this._scene);
         this._hoverEngineBR = new Mesh("fake_hoverEngineBR", this._scene);
@@ -73,7 +76,7 @@ export class HoverCar {
                 case '__root__':
                     mesh.rotation = new Vector3(0, 0, 0);
                     this._body.addChild(mesh);
-                    this._body.addChild(this.cameraAnchor);
+                    this._body.addChild(this.cameraTarget);
                     this._physicsRoot.addChild(this._body);
                     break;
                 case 'car':
@@ -151,7 +154,7 @@ export class HoverCar {
             this._hoverEngineBL
         ];
 
-        this._stabilizationEnabled = true;
+        this._verticalStabilizationEnabled = true;
 
         this._scene.registerBeforeRender(() => {
             for (let engine of engines) {
@@ -166,7 +169,7 @@ export class HoverCar {
                         this.push(engine, pickingInfo.distance);
                     }
     
-                    if (this._stabilizationEnabled) {
+                    if (this._verticalStabilizationEnabled) {
                         this.stabilize();
                     }
                 }
@@ -236,8 +239,8 @@ export class HoverCar {
     }
 
     private jump() {
-        this._stabilizationEnabled = false;
-        setTimeout(() => this._stabilizationEnabled = true, 300);
+        this._verticalStabilizationEnabled = false;
+        setTimeout(() => this._verticalStabilizationEnabled = true, 300);
         let magnitude = HoverCar.jumpMagnitude * HoverCar.carMass;
         this._physicsRoot.physicsImpostor?.applyImpulse(
             Vector3.Normalize(vecToLocal(Vector3.Up(), this._body).subtract(this._body.getAbsolutePosition())).scale(magnitude),

@@ -53,7 +53,7 @@ ground.receiveShadows = true;
  assetsLoader.load().then(s => {
     let hoverCar = new HoverCar(scene);
     hoverCar.position = new Vector3(0,2,0);
-    camera.lockedTarget = hoverCar.cameraAnchor;
+    camera.lockedTarget = hoverCar.cameraTarget;
     shadowGenerator.addShadowCaster(hoverCar.shadowCaster)
     
     hoverCar.initControls();
