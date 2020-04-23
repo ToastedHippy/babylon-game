@@ -1,5 +1,6 @@
 import { Scene, PhysicsImpostor, AbstractMesh, Mesh, MeshBuilder, Vector3, StandardMaterial, Ray, ActionManager, ExecuteCodeAction, AssetsManager, Nullable } from "babylonjs";
 import { AssetsLoader, Assets } from "./assets-loader";
+import { HoverEngine } from "./hover-engine";
 
 
 @Assets({
@@ -7,18 +8,27 @@ import { AssetsLoader, Assets } from "./assets-loader";
 })
 export class HoverCar {
 
-    static hoverHeight: number = 2;
-    static thrustMagnitude: number = 0.2;
-    static torqueMagnitude: number = 0.2;
+    static set hoverHeight(value: number) {
+        HoverEngine.hoverHeight = value;
+    }
+
+    static engineRotationSpeed = 0.015;
+    static engineRotationLimit = 0.5;
+
     static jumpMagnitude: number = 1;
     static carMass: number = 1000;
 
     private _physicsRoot: AbstractMesh;
     private _scene: Scene;
-    private _hoverEngineFR: AbstractMesh;
-    private _hoverEngineFL: AbstractMesh;
-    private _hoverEngineBR: AbstractMesh;
-    private _hoverEngineBL: AbstractMesh;
+    private _hoverEngineFR: HoverEngine;
+    private _hoverEngineFL: HoverEngine;
+    private _hoverEngineBR: HoverEngine;
+    private _hoverEngineBL: HoverEngine;
+
+    private get _hoverEngines() {
+        return [this._hoverEngineFR, this._hoverEngineFL, this._hoverEngineBR, this._hoverEngineBL];
+    }
+
     private _body: AbstractMesh;
     private _cameraTarget: AbstractMesh;
     private _inputMap: {[k: string]: boolean} = {};
@@ -64,13 +74,15 @@ export class HoverCar {
         this._body = new Mesh('_body', this._scene);
         
 
-        this._hoverEngineFR = new Mesh("fake_hoverEngineFR", this._scene);
-        this._hoverEngineFL = new Mesh("fake_hoverEngineFL", this._scene);
-        this._hoverEngineBR = new Mesh("fake_hoverEngineBR", this._scene);
-        this._hoverEngineBL = new Mesh("fake_hoverEngineBL", this._scene);
+        this._hoverEngineFR = new HoverEngine(new Mesh("fake_hoverEngineFR", this._scene), this._scene);
+        this._hoverEngineFL = new HoverEngine(new Mesh("fake_hoverEngineFL", this._scene), this._scene);
+        this._hoverEngineBR = new HoverEngine(new Mesh("fake_hoverEngineBR", this._scene), this._scene);
+        this._hoverEngineBL = new HoverEngine(new Mesh("fake_hoverEngineBL", this._scene), this._scene);
 
         for (let mesh of meshes) {
             mesh.isPickable = false;
+            let xLimit = 0.5;
+            let zLimit = 0.5;
 
             switch (mesh.name) {    
                 case '__root__':
@@ -83,16 +95,16 @@ export class HoverCar {
                     mesh.material = carBodyM
                     break;
                 case 'hoverEngineFR':
-                    this._hoverEngineFR = mesh;
+                    this._hoverEngineFR = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
                     break;
                 case 'hoverEngineFL':
-                    this._hoverEngineFL = mesh;
+                    this._hoverEngineFL = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
                     break;
                 case 'hoverEngineBR':
-                    this._hoverEngineBR = mesh;
+                    this._hoverEngineBR = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
                     break;
                 case 'hoverEngineBL':
-                    this._hoverEngineBL = mesh;
+                    this._hoverEngineBL = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
                     break;
                 case 'boxCollider': 
                     mesh.physicsImpostor = new PhysicsImpostor(
@@ -142,63 +154,30 @@ export class HoverCar {
         })
     }
 
-    public enableHoverEngines() {
+    public startHoverEngines() {
 
-        this.activateAngularDrag();
-        this.activateDrag();
+        if (this._physicsRoot.physicsImpostor) {
 
-        let engines = [
-            this._hoverEngineFR,
-            this._hoverEngineFL,
-            this._hoverEngineBR,
-            this._hoverEngineBL
-        ];
+            this.activateAngularDrag();
+            this.activateDrag();
 
-        this._verticalStabilizationEnabled = true;
-
-        this._scene.registerBeforeRender(() => {
-            for (let engine of engines) {
-                let ray = this.castRayFromEngine(engine);
-                let pickingInfo = this._scene.pickWithRay(ray);
-                
-                if (pickingInfo 
-                    && pickingInfo.hit 
-                    && pickingInfo.pickedMesh?.name !== 'ray' // in case of showing rays
-                ) {
-                    if (pickingInfo.distance < HoverCar.hoverHeight) {
-                        this.push(engine, pickingInfo.distance);
-                    }
-    
-                    if (this._verticalStabilizationEnabled) {
-                        this.stabilize();
-                    }
+            
+            for (let engine of this._hoverEngines) {
+                if (engine) {
+                    engine.start(this._physicsRoot.physicsImpostor);
                 }
-    
             }
-        })
+            
+            this._verticalStabilizationEnabled = true;
 
-        // this.activateAngularDrag();
-    }
-
-    private castRayFromEngine(engine: AbstractMesh) {
-        let origin = engine.getAbsolutePosition();
-        let direction = Vector3.Normalize(
-            vecToLocal(Vector3.Down(), engine).subtract(origin),
-        );
-        let length = HoverCar.hoverHeight * 1.5;
-
-        return new Ray(origin, direction, length);
-    }
-
-    private push(hoverEngine: AbstractMesh, distance: number) {
-        let contactPoint = hoverEngine.getAbsolutePosition();
-        let direction = Vector3.Normalize(
-            vecToLocal(Vector3.Up(), hoverEngine).subtract(contactPoint)
-        );
-        let forceMagnitude = (1 - distance / HoverCar.hoverHeight) * HoverCar.carMass * 10;
-        let force = direction.scale(forceMagnitude);
-
-        this._physicsRoot.physicsImpostor?.applyForce(force, contactPoint);
+            this._scene.registerBeforeRender(() => {
+        
+                if (this._verticalStabilizationEnabled) {
+                    this.stabilize();
+                }
+                
+            });
+        }
     }
 
     private stabilize() {
@@ -206,36 +185,79 @@ export class HoverCar {
         let contactPoint = this._body.getAbsolutePosition();
     
         if (v) {
-            let magnitude = Math.abs(v.y) * 0.5 * HoverCar.carMass;
+            let magnitude = Math.abs(v.y) * 2 * HoverCar.carMass;
             let force = new Vector3(0, -v.y, 0).scale(magnitude);
 
             this._physicsRoot.physicsImpostor?.applyForce(force, contactPoint);
         }
     }
 
-    private thrust(direction: Vector3) {
-        let contactPoint = this._body.getAbsolutePosition();
-        
-        direction.normalize();
-        let force = vecToLocal(direction, this._body)
-            .subtract(contactPoint)
-            .scale(HoverCar.thrustMagnitude * HoverCar.carMass)
+    private move(direction: EMoveDirections) {
 
-        this._physicsRoot.physicsImpostor?.applyImpulse(force, contactPoint)
+        let rotation = new Vector3(0, 0, 0);
+        let thrustMultiplier = 0.5;
+
+        switch (direction) {
+            case EMoveDirections.forward:
+                rotation = new Vector3(-1*HoverCar.engineRotationSpeed,0,0);
+                
+                this._hoverEngineBR.increaceThrustPowerToMax(thrustMultiplier);
+                this._hoverEngineBL.increaceThrustPowerToMax(thrustMultiplier);
+                
+                this._hoverEngineFR.decreaceThrustPowerToMin(thrustMultiplier);
+                this._hoverEngineFL.decreaceThrustPowerToMin(thrustMultiplier);
+
+                break;
+            case EMoveDirections.backward:
+                rotation = new Vector3(1*HoverCar.engineRotationSpeed,0,0);
+                
+                this._hoverEngineFR.increaceThrustPowerToMax(thrustMultiplier);
+                this._hoverEngineFL.increaceThrustPowerToMax(thrustMultiplier);
+            
+                this._hoverEngineBR.decreaceThrustPowerToMin(thrustMultiplier);
+                this._hoverEngineBL.decreaceThrustPowerToMin(thrustMultiplier);
+                
+                break;
+            case EMoveDirections.right:
+                rotation = new Vector3(0,0,-1*HoverCar.engineRotationSpeed);
+                break;
+            case EMoveDirections.left:
+                rotation = new Vector3(0,0,1*HoverCar.engineRotationSpeed);
+                break
+            default:
+                break;
+        }
+        
+        for(let engine of this._hoverEngines) {
+            engine.rotate(rotation);
+        }
+        
     }
 
-    private torque(clockWise: boolean) {
-        let hoverEngineF = clockWise ? this._hoverEngineFL : this._hoverEngineFR;
-        let hoverEngineB = clockWise ? this._hoverEngineBR : this._hoverEngineBL; 
-        let direction = clockWise ? Vector3.Right() : Vector3.Left();
-        let magnitude = HoverCar.torqueMagnitude * HoverCar.carMass;
+    private turn(direction: ETurnDirections) {
+        let fRotation = new Vector3(0, 0, 0);
+        let bRotation = new Vector3(0, 0, 0);
 
-        let force = Vector3.Normalize(
-            vecToLocal(direction, this._body).subtract(this._body.getAbsolutePosition())
-        ).scale(magnitude)
 
-        this._physicsRoot.physicsImpostor?.applyImpulse(force, hoverEngineF.getAbsolutePosition())
-        this._physicsRoot.physicsImpostor?.applyImpulse(force.negate(), hoverEngineB.getAbsolutePosition())
+
+        switch(direction) {
+            case ETurnDirections.right:
+                fRotation = new Vector3(0, 0, 1*HoverCar.engineRotationSpeed)
+                bRotation = new Vector3(0, 0, -1*HoverCar.engineRotationSpeed)
+                break;
+            case ETurnDirections.left:
+                fRotation = new Vector3(0, 0, -1*HoverCar.engineRotationSpeed)
+                bRotation = new Vector3(0, 0, 1*HoverCar.engineRotationSpeed)
+                break;
+            default:
+                break;
+        }
+
+        this._hoverEngineFR?.rotate(fRotation)
+        this._hoverEngineFL?.rotate(fRotation)
+
+        this._hoverEngineBR?.rotate(bRotation)
+        this._hoverEngineBL?.rotate(bRotation)
     }
 
     private jump() {
@@ -262,19 +284,25 @@ export class HoverCar {
         this._scene.onBeforeRenderObservable.add(()=>{
     
             if(this._inputMap["w"]){
-                this.thrust(Vector3.Forward());
+                this.move(EMoveDirections.forward);
             } 
             if(this._inputMap["a"]){
-                this.torque(false)
+                this.turn(ETurnDirections.right);
             } 
             if(this._inputMap["s"]){
-                this.thrust(Vector3.Backward());
+                this.move(EMoveDirections.backward);
             } 
             if(this._inputMap["d"]) {
-                this.torque(true);
+                this.turn(ETurnDirections.left);
             }
             if(this._inputMap[" "]){
                 this.jump();
+            }
+            if(this._inputMap["e"]) {
+                this.move(EMoveDirections.right);
+            }
+            if(this._inputMap["q"]) {
+                this.move(EMoveDirections.left);
             }
         })
     }
@@ -285,4 +313,17 @@ export class HoverCar {
 
 function vecToLocal(vec: Vector3, mesh: AbstractMesh) {
     return Vector3.TransformCoordinates(vec, mesh.getWorldMatrix());
+}
+
+
+enum EMoveDirections {
+    forward,
+    backward,
+    right,
+    left
+}
+
+enum ETurnDirections {
+    right,
+    left
 }

@@ -11,8 +11,8 @@ let engine = new Engine(canvas);
 let scene = new Scene(engine);
 let camera = new FollowCamera('camera',new Vector3(0, 10, -10), scene);
 
-camera.radius = -30;
-camera.heightOffset = 60;
+camera.radius = -10;
+camera.heightOffset = 20;
 
 camera.cameraAcceleration = 0.01;
 camera.maxCameraSpeed = 10;
@@ -58,7 +58,7 @@ ground.receiveShadows = true;
     
     hoverCar.initControls();
 
-    hoverCar.enableHoverEngines();
+    hoverCar.startHoverEngines();
  })
 
 
@@ -67,6 +67,3 @@ ground.receiveShadows = true;
 });
 
 
-function degToRad(degree: number) {
-    return degree / (180 / Math.PI);
-}
