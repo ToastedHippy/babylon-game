@@ -1,27 +1,33 @@
-import { AbstractMesh, Vector3, Nullable, PhysicsImpostor, Ray, Scene } from "babylonjs";
+import { AbstractMesh, Vector3, Nullable, PhysicsImpostor, Ray, Scene, Observable } from "babylonjs";
 import { Utils } from "./utils";
+import { HoverCar } from "./hover-car";
+import {BehaviorSubject} from "rxjs"
 
 export class HoverEngine {
 
-    static hoverHeight: number = 2;
+    static hoverHeight = 2;
+    static thrustMultiplier = 50;
 
     private _scene: Scene;
     private _mesh: AbstractMesh;
     private _rotationLimit: Nullable<IRotationLimit>;
-    private _rotation: Vector3; //temp. Figure out how to get local rotation
-    public get rotation() {
-        return this._rotation;
+    private _rotation$: BehaviorSubject<Vector3>; //temp. Figure out how to get local rotation
+
+    public get rotation$() {
+        return this._rotation$;
     }
-    private _minTrustMultiplier = 10;
-    private _maxTrustMultiplier = 20;
     private _thrustMultiplier: number;
+
+    public get rotation() {
+        return this._rotation$.value;
+    }
 
     constructor(mesh: AbstractMesh, scene: Scene, props?: IHoverEngineProps) {
         this._scene = scene;
         this._mesh = mesh;
         this._rotationLimit = props?.rotationLimit ?? null;
-        this._rotation = Vector3.Zero();
-        this._thrustMultiplier = this._minTrustMultiplier;
+        this._rotation$ = new BehaviorSubject(Vector3.Zero());
+        this._thrustMultiplier = 1;
     }
 
     private inRotationLimit(vec: Vector3) {
@@ -34,28 +40,18 @@ export class HoverEngine {
         && (this._rotationLimit.z ? vec.z >= this._rotationLimit.z[0] && vec.z <= this._rotationLimit.z[1] : true);
     }
 
+    setThrustMultiplier(value: number) {
+        if (value > 0) {
+            this._thrustMultiplier = value;
+        }
+    }
+
     rotate(vec: Vector3) {
-        let newRotation = this._rotation.add(vec);
+        let newRotation = this.rotation.add(vec);
 
         if(this.inRotationLimit(newRotation)) {
-            this._rotation = newRotation;
             this._mesh.addRotation(vec.x, vec.y, vec.z);
-        }
-    }
-
-    increaceThrustPowerToMax(value: number) {
-        this._thrustMultiplier += value;
-
-        if (this._thrustMultiplier > this._maxTrustMultiplier) {
-            this._thrustMultiplier = this._maxTrustMultiplier;
-        }
-    }
-
-    decreaceThrustPowerToMin(value: number) {
-        this._thrustMultiplier -= value;
-
-        if (this._thrustMultiplier < this._minTrustMultiplier) {
-            this._thrustMultiplier = this._minTrustMultiplier;
+            this._rotation$.next(newRotation);
         }
     }
 
@@ -85,18 +81,19 @@ export class HoverEngine {
         let direction = Vector3.Normalize(
             Utils.vecToLocal(Vector3.Up(), this._mesh).subtract(contactPoint)
         );
-        let forceMagnitude = (1 - distance / HoverEngine.hoverHeight) * physicsImpostor.mass * this._thrustMultiplier;
+        let forceMagnitude = (1 - distance / HoverEngine.hoverHeight) * physicsImpostor.mass * HoverEngine.thrustMultiplier * this._thrustMultiplier;
         let force = direction.scale(forceMagnitude);
+        console.log(this._mesh.name, force)
 
         physicsImpostor.applyForce(force, contactPoint);
-        console.log(this._mesh.name, force)
     }
 
     private castRay() {
         let origin = this._mesh.getAbsolutePosition();
         let direction = Vector3.Normalize(
-            Utils.vecToLocal(Vector3.Down(), this._mesh).subtract(origin),
+            Utils.vecToLocal(Vector3.Down(), (this._mesh.parent?.parent as AbstractMesh)).subtract((this._mesh.parent?.parent as AbstractMesh).getAbsolutePosition()),
         );
+
         let length = HoverEngine.hoverHeight * 1.5;
 
         return new Ray(origin, direction, length);

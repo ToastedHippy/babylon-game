@@ -12,7 +12,7 @@ export class HoverCar {
         HoverEngine.hoverHeight = value;
     }
 
-    static engineRotationSpeed = 0.015;
+    static engineRotationSpeed = 0.03;
     static engineRotationLimit = 0.5;
 
     static jumpMagnitude: number = 1;
@@ -81,8 +81,8 @@ export class HoverCar {
 
         for (let mesh of meshes) {
             mesh.isPickable = false;
-            let xLimit = 0.5;
-            let zLimit = 0.5;
+            let xLimit = 0.8;
+            let zLimit = 0.9;
 
             switch (mesh.name) {    
                 case '__root__':
@@ -185,7 +185,7 @@ export class HoverCar {
         let contactPoint = this._body.getAbsolutePosition();
     
         if (v) {
-            let magnitude = Math.abs(v.y) * 2 * HoverCar.carMass;
+            let magnitude = Math.abs(v.y) * 6 * HoverCar.carMass;
             let force = new Vector3(0, -v.y, 0).scale(magnitude);
 
             this._physicsRoot.physicsImpostor?.applyForce(force, contactPoint);
@@ -195,35 +195,20 @@ export class HoverCar {
     private move(direction: EMoveDirections) {
 
         let rotation = new Vector3(0, 0, 0);
-        let thrustMultiplier = 0.5;
 
         switch (direction) {
             case EMoveDirections.forward:
                 rotation = new Vector3(-1*HoverCar.engineRotationSpeed,0,0);
-                
-                this._hoverEngineBR.increaceThrustPowerToMax(thrustMultiplier);
-                this._hoverEngineBL.increaceThrustPowerToMax(thrustMultiplier);
-                
-                this._hoverEngineFR.decreaceThrustPowerToMin(thrustMultiplier);
-                this._hoverEngineFL.decreaceThrustPowerToMin(thrustMultiplier);
-
                 break;
             case EMoveDirections.backward:
                 rotation = new Vector3(1*HoverCar.engineRotationSpeed,0,0);
-                
-                this._hoverEngineFR.increaceThrustPowerToMax(thrustMultiplier);
-                this._hoverEngineFL.increaceThrustPowerToMax(thrustMultiplier);
-            
-                this._hoverEngineBR.decreaceThrustPowerToMin(thrustMultiplier);
-                this._hoverEngineBL.decreaceThrustPowerToMin(thrustMultiplier);
-                
                 break;
             case EMoveDirections.right:
                 rotation = new Vector3(0,0,-1*HoverCar.engineRotationSpeed);
                 break;
             case EMoveDirections.left:
                 rotation = new Vector3(0,0,1*HoverCar.engineRotationSpeed);
-                break
+                break;
             default:
                 break;
         }
