@@ -6,53 +6,18 @@ import {BehaviorSubject} from "rxjs"
 export class HoverEngine {
 
     static hoverHeight = 2;
-    static thrustMultiplier = 50;
+    static thrustMultiplier = 10;
 
     private _scene: Scene;
     private _mesh: AbstractMesh;
-    private _rotationLimit: Nullable<IRotationLimit>;
-    private _rotation$: BehaviorSubject<Vector3>; //temp. Figure out how to get local rotation
 
-    public get rotation$() {
-        return this._rotation$;
-    }
-    private _thrustMultiplier: number;
-
-    public get rotation() {
-        return this._rotation$.value;
+    get mesh() {
+        return this._mesh;
     }
 
-    constructor(mesh: AbstractMesh, scene: Scene, props?: IHoverEngineProps) {
+    constructor(mesh: AbstractMesh, scene: Scene) {
         this._scene = scene;
         this._mesh = mesh;
-        this._rotationLimit = props?.rotationLimit ?? null;
-        this._rotation$ = new BehaviorSubject(Vector3.Zero());
-        this._thrustMultiplier = 1;
-    }
-
-    private inRotationLimit(vec: Vector3) {
-        if (!this._rotationLimit) {
-            return true
-        }
-
-        return (this._rotationLimit.x ? vec.x >= this._rotationLimit.x[0] && vec.x <= this._rotationLimit.x[1] : true)
-        && (this._rotationLimit.y ? vec.y >= this._rotationLimit.y[0] && vec.y <= this._rotationLimit.y[1] : true)
-        && (this._rotationLimit.z ? vec.z >= this._rotationLimit.z[0] && vec.z <= this._rotationLimit.z[1] : true);
-    }
-
-    setThrustMultiplier(value: number) {
-        if (value > 0) {
-            this._thrustMultiplier = value;
-        }
-    }
-
-    rotate(vec: Vector3) {
-        let newRotation = this.rotation.add(vec);
-
-        if(this.inRotationLimit(newRotation)) {
-            this._mesh.addRotation(vec.x, vec.y, vec.z);
-            this._rotation$.next(newRotation);
-        }
     }
 
     start(physicsImpostor: PhysicsImpostor) {
@@ -81,9 +46,8 @@ export class HoverEngine {
         let direction = Vector3.Normalize(
             Utils.vecToLocal(Vector3.Up(), this._mesh).subtract(contactPoint)
         );
-        let forceMagnitude = (1 - distance / HoverEngine.hoverHeight) * physicsImpostor.mass * HoverEngine.thrustMultiplier * this._thrustMultiplier;
+        let forceMagnitude = (1 - distance / HoverEngine.hoverHeight) * physicsImpostor.mass * HoverEngine.thrustMultiplier;
         let force = direction.scale(forceMagnitude);
-        console.log(this._mesh.name, force)
 
         physicsImpostor.applyForce(force, contactPoint);
     }
@@ -91,7 +55,7 @@ export class HoverEngine {
     private castRay() {
         let origin = this._mesh.getAbsolutePosition();
         let direction = Vector3.Normalize(
-            Utils.vecToLocal(Vector3.Down(), (this._mesh.parent?.parent as AbstractMesh)).subtract((this._mesh.parent?.parent as AbstractMesh).getAbsolutePosition()),
+            Utils.vecToLocal(Vector3.Down(), this._mesh).subtract(this._mesh.getAbsolutePosition()),
         );
 
         let length = HoverEngine.hoverHeight * 1.5;
@@ -99,13 +63,4 @@ export class HoverEngine {
         return new Ray(origin, direction, length);
     }
 
-
-
-
 }
-
-interface IHoverEngineProps {
-    rotationLimit?: IRotationLimit
-}
-
-interface IRotationLimit {x?: [number, number], y?: [number, number], z?: [number, number]}

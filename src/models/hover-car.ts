@@ -14,6 +14,8 @@ export class HoverCar {
 
     static engineRotationSpeed = 0.03;
     static engineRotationLimit = 0.5;
+    static movingMultiplier = .4;
+    static turningMultiplier = .25;
 
     static jumpMagnitude: number = 1;
     static carMass: number = 1000;
@@ -81,8 +83,6 @@ export class HoverCar {
 
         for (let mesh of meshes) {
             mesh.isPickable = false;
-            let xLimit = 0.8;
-            let zLimit = 0.9;
 
             switch (mesh.name) {    
                 case '__root__':
@@ -95,16 +95,16 @@ export class HoverCar {
                     mesh.material = carBodyM
                     break;
                 case 'hoverEngineFR':
-                    this._hoverEngineFR = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
+                    this._hoverEngineFR = new HoverEngine(mesh, this._scene);
                     break;
                 case 'hoverEngineFL':
-                    this._hoverEngineFL = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
+                    this._hoverEngineFL = new HoverEngine(mesh, this._scene);
                     break;
                 case 'hoverEngineBR':
-                    this._hoverEngineBR = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
+                    this._hoverEngineBR = new HoverEngine(mesh, this._scene);
                     break;
                 case 'hoverEngineBL':
-                    this._hoverEngineBL = new HoverEngine(mesh, this._scene, {rotationLimit: {x: [-xLimit, xLimit], z: [-zLimit, zLimit]}});
+                    this._hoverEngineBL = new HoverEngine(mesh, this._scene);
                     break;
                 case 'boxCollider': 
                     mesh.physicsImpostor = new PhysicsImpostor(
@@ -193,56 +193,44 @@ export class HoverCar {
     }
 
     private move(direction: EMoveDirections) {
-
-        let rotation = new Vector3(0, 0, 0);
+        let contactPoint = this._body.getAbsolutePosition();
+        let directionVec = Vector3.Zero();
 
         switch (direction) {
             case EMoveDirections.forward:
-                rotation = new Vector3(-1*HoverCar.engineRotationSpeed,0,0);
+                directionVec = Vector3.Forward();
                 break;
             case EMoveDirections.backward:
-                rotation = new Vector3(1*HoverCar.engineRotationSpeed,0,0);
+                directionVec = Vector3.Backward();
                 break;
             case EMoveDirections.right:
-                rotation = new Vector3(0,0,-1*HoverCar.engineRotationSpeed);
+                directionVec = Vector3.Right();
                 break;
             case EMoveDirections.left:
-                rotation = new Vector3(0,0,1*HoverCar.engineRotationSpeed);
-                break;
-            default:
+                directionVec = Vector3.Left();
                 break;
         }
-        
-        for(let engine of this._hoverEngines) {
-            engine.rotate(rotation);
-        }
-        
+
+        let force = vecToLocal(directionVec, this._body)
+            .subtract(contactPoint)
+            .scale(HoverCar.movingMultiplier * HoverCar.carMass)
+
+        this._physicsRoot.physicsImpostor?.applyImpulse(force, contactPoint)
     }
 
     private turn(direction: ETurnDirections) {
-        let fRotation = new Vector3(0, 0, 0);
-        let bRotation = new Vector3(0, 0, 0);
+        let frontEngine = direction === ETurnDirections.right ? this._hoverEngineFL : this._hoverEngineFR;
+        let backEngine = direction === ETurnDirections.right ? this._hoverEngineBR : this._hoverEngineBL;
 
+        let directionVec = direction === ETurnDirections.right ? Vector3.Right() : Vector3.Left();
+        let magnitude = HoverCar.turningMultiplier * HoverCar.carMass;
 
+        let force = Vector3.Normalize(
+            vecToLocal(directionVec, this._body).subtract(this._body.getAbsolutePosition())
+        ).scale(magnitude)
 
-        switch(direction) {
-            case ETurnDirections.right:
-                fRotation = new Vector3(0, 0, 1*HoverCar.engineRotationSpeed)
-                bRotation = new Vector3(0, 0, -1*HoverCar.engineRotationSpeed)
-                break;
-            case ETurnDirections.left:
-                fRotation = new Vector3(0, 0, -1*HoverCar.engineRotationSpeed)
-                bRotation = new Vector3(0, 0, 1*HoverCar.engineRotationSpeed)
-                break;
-            default:
-                break;
-        }
-
-        this._hoverEngineFR?.rotate(fRotation)
-        this._hoverEngineFL?.rotate(fRotation)
-
-        this._hoverEngineBR?.rotate(bRotation)
-        this._hoverEngineBL?.rotate(bRotation)
+        this._physicsRoot.physicsImpostor?.applyImpulse(force, frontEngine.mesh.getAbsolutePosition())
+        this._physicsRoot.physicsImpostor?.applyImpulse(force.negate(), backEngine.mesh.getAbsolutePosition())
     }
 
     private jump() {
@@ -272,13 +260,13 @@ export class HoverCar {
                 this.move(EMoveDirections.forward);
             } 
             if(this._inputMap["a"]){
-                this.turn(ETurnDirections.right);
+                this.turn(ETurnDirections.left);
             } 
             if(this._inputMap["s"]){
                 this.move(EMoveDirections.backward);
             } 
             if(this._inputMap["d"]) {
-                this.turn(ETurnDirections.left);
+                this.turn(ETurnDirections.right);
             }
             if(this._inputMap[" "]){
                 this.jump();
