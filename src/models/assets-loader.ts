@@ -1,17 +1,17 @@
 import { AssetsManager, Scene, AbstractMesh, PhotoDome } from "babylonjs";
 
 export class AssetsLoader {
-    private static _typeAssetsDefinitions: TypeAssetDefinitions = {};
-    private static _typeLoadedAssets: TypeLoadedAssets = {};
+    private static _assetsDefinitions: TypeAssetDefinitions = {};
+    private static _loadedAssets: TypeLoadedAssets = {};
     
     static loadedAssets(cls: Constructor<any>) {
-        return this._typeLoadedAssets[cls.name];
+        return this._loadedAssets[cls.name];
     }
 
     static rootUrl: string = '';
 
     static defineAssets(cls: Constructor<any>, defs: AssetsDefinition) {
-        this._typeAssetsDefinitions[cls.name] = defs;
+        this._assetsDefinitions[cls.name] = defs;
     }
 
     private _scene: Scene;
@@ -24,7 +24,7 @@ export class AssetsLoader {
 
     addToLoading(cls: Constructor<any>) {
         
-        let assetsDefs = AssetsLoader._typeAssetsDefinitions[cls.name];
+        let assetsDefs = AssetsLoader._assetsDefinitions[cls.name];
 
         if (assetsDefs.meshes) {
             for (let [index, meshDef] of assetsDefs.meshes.entries()) {
@@ -33,11 +33,11 @@ export class AssetsLoader {
                     
                 task.onSuccess = t => {
                                         
-                    if (!AssetsLoader._typeLoadedAssets[cls.name]) {
-                        AssetsLoader._typeLoadedAssets[cls.name] = {};
+                    if (!AssetsLoader._loadedAssets[cls.name]) {
+                        AssetsLoader._loadedAssets[cls.name] = {};
                     }
 
-                    AssetsLoader._typeLoadedAssets[cls.name].meshes = t.loadedMeshes;
+                    AssetsLoader._loadedAssets[cls.name].meshes = t.loadedMeshes;
                 };
             }
         }

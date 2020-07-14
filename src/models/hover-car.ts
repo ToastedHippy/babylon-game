@@ -246,12 +246,14 @@ export class HoverCar {
     public initControls() {
         this._scene.actionManager = new ActionManager(this._scene);
         
-        this._scene.actionManager.registerAction(new ExecuteCodeAction(ActionManager.OnKeyDownTrigger, (evt) => {								
-            this._inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+        this._scene.actionManager.registerAction(new ExecuteCodeAction(ActionManager.OnKeyDownTrigger, (evt) => {
+            let sourceEvent: KeyboardEvent = evt.sourceEvent;
+            this._inputMap[sourceEvent.key.toLowerCase()] = sourceEvent.type == "keydown";
         }));
 
-        this._scene.actionManager.registerAction(new ExecuteCodeAction(ActionManager.OnKeyUpTrigger, (evt) => {								
-            this._inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+        this._scene.actionManager.registerAction(new ExecuteCodeAction(ActionManager.OnKeyUpTrigger, (evt) => {
+            let sourceEvent: KeyboardEvent = evt.sourceEvent;
+            this._inputMap[sourceEvent.key.toLowerCase()] = sourceEvent.type == "keydown";
         }));
 
         this._scene.onBeforeRenderObservable.add(()=>{
@@ -260,23 +262,25 @@ export class HoverCar {
                 this.move(EMoveDirections.forward);
             } 
             if(this._inputMap["a"]){
-                this.turn(ETurnDirections.left);
+                if (this._inputMap['shift']) {
+                    this.move(EMoveDirections.left)
+                } else {
+                    this.turn(ETurnDirections.left);
+                }
             } 
             if(this._inputMap["s"]){
                 this.move(EMoveDirections.backward);
             } 
             if(this._inputMap["d"]) {
-                this.turn(ETurnDirections.right);
+                if (this._inputMap['shift']) {
+                    this.move(EMoveDirections.right)
+                } else {
+                    this.turn(ETurnDirections.right);
+                }
             }
-            if(this._inputMap[" "]){
-                this.jump();
-            }
-            if(this._inputMap["e"]) {
-                this.move(EMoveDirections.right);
-            }
-            if(this._inputMap["q"]) {
-                this.move(EMoveDirections.left);
-            }
+            // if(this._inputMap[" "]){
+            //     this.jump();
+            // }
         })
     }
 
