@@ -5,17 +5,15 @@ import "babylonjs-loaders";
 import { HoverCar } from './models/hover-car';
 import { AssetsLoader } from './models/assets-loader';
 
+HoverCar.hoverHeight = 1;
+AssetsLoader.rootUrl = 'assets/';
 
 let canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+
 let engine = new Engine(canvas);
 let scene = new Scene(engine);
-let camera = new FollowCamera('camera',new Vector3(0, 10, -10), scene);
+let camera = new ArcRotateCamera('camera', 90*Math.PI/180, 140*Math.PI/180, -90, Vector3.Zero(), scene);
 
-camera.radius = -10;
-camera.heightOffset = 20;
-
-camera.cameraAcceleration = 0.01;
-camera.maxCameraSpeed = 10;
 camera.attachControl(canvas);
 
 let gravityVector = new Vector3(0,-9.81, 0);
@@ -34,7 +32,7 @@ let material = new StandardMaterial("grid", scene);
 let texture = new Texture("assets/textures/ground.jpg", scene);
 texture.uScale = 12;
 texture.vScale = 12;
-material.diffuseTexture = texture   
+material.diffuseTexture = texture
 ground.material = material;
 
 ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: 0.9, friction: 1 }, scene);
@@ -46,16 +44,20 @@ ground.receiveShadows = true;
  shadowGenerator.addShadowCaster(obsticleBox);
  obsticleBox.position = new Vector3(0, 0.5, 5);
 
- AssetsLoader.rootUrl = 'assets/'   
+
  let assetsLoader = new AssetsLoader(scene);
  assetsLoader.addToLoading(HoverCar);
+
+
 
  assetsLoader.load().then(s => {
     let hoverCar = new HoverCar(scene);
     hoverCar.position = new Vector3(0,2,0);
-    camera.lockedTarget = hoverCar.cameraTarget;
-    shadowGenerator.addShadowCaster(hoverCar.shadowCaster)
-    
+    // camera.parent = hoverCar.body;
+    // camera.target = hoverCar.cameraTarget;
+    // camera.lockedTarget = hoverCar.cameraTarget;
+    shadowGenerator.addShadowCaster(hoverCar.body)
+
     hoverCar.initControls();
 
     hoverCar.startHoverEngines();

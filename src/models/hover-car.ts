@@ -41,7 +41,7 @@ export class HoverCar {
         return this._cameraTarget;
     }
 
-    get shadowCaster() {
+    get body() {
         return this._body;
     }
 
@@ -147,7 +147,7 @@ export class HoverCar {
                 let normDir = v.normalizeToNew();
                 
                 normDir.negateInPlace()
-                let dragMagnitude = Math.pow(length, 2) * 10;
+                let dragMagnitude = Math.pow(length, 2) * 20;
                 
                 this._physicsRoot.physicsImpostor?.applyForce(normDir.scale(dragMagnitude), this._body.getAbsolutePosition());
             }
@@ -262,7 +262,7 @@ export class HoverCar {
                 this.move(EMoveDirections.forward);
             } 
             if(this._inputMap["a"]){
-                if (this._inputMap['shift']) {
+                if (this._inputMap[' ']) {
                     this.move(EMoveDirections.left)
                 } else {
                     this.turn(ETurnDirections.left);
@@ -272,7 +272,7 @@ export class HoverCar {
                 this.move(EMoveDirections.backward);
             } 
             if(this._inputMap["d"]) {
-                if (this._inputMap['shift']) {
+                if (this._inputMap[' ']) {
                     this.move(EMoveDirections.right)
                 } else {
                     this.turn(ETurnDirections.right);
