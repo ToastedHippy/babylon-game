@@ -1,4 +1,5 @@
-import { Scene, PhysicsImpostor, AbstractMesh, Mesh, MeshBuilder, Vector3, StandardMaterial, Ray, ActionManager, ExecuteCodeAction, AssetsManager, Nullable } from "babylonjs";
+import { Scene, PhysicsImpostor, AbstractMesh, Mesh, MeshBuilder, Vector3, StandardMaterial, Ray, ActionManager, ExecuteCodeAction,
+    AssetsManager, Nullable } from "babylonjs";
 import { AssetsLoader, Assets } from "./assets-loader";
 import { HoverEngine } from "./hover-engine";
 
@@ -39,6 +40,10 @@ export class HoverCar {
 
     get cameraTarget() {
         return this._cameraTarget;
+    }
+
+    get root() {
+        return this._physicsRoot;
     }
 
     get body() {

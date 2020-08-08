@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "babylonjs": "^4.2.0-alpha.10",
-    "babylonjs-editor-es6": "^3.2.1-beta.4",
     "babylonjs-loaders": "^4.2.0-alpha.10",
     "babylonjs-materials": "^4.2.0-alpha.10",
     "cannon": "schteppe/cannon.js",

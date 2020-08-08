@@ -399,11 +399,6 @@ atob@^2.1.2:
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
-babylonjs-editor-es6@^3.2.1-beta.4:
-  version "3.2.1-beta.4"
-  resolved "https://registry.yarnpkg.com/babylonjs-editor-es6/-/babylonjs-editor-es6-3.2.1-beta.4.tgz#5d7ed4a1c0d173b229d8a831fdff2c00b9ffb252"
-  integrity sha512-ltcaBWpUFqfhUGaKcop+MyFv4h+Rk6XHeje0ZKB92LL8KdaCZZTTP8+b39R0f0W2Xbzqjnc3MA0Vi8p0/xdDDw==
-
 babylonjs-gltf2interface@4.2.0-alpha.10:
   version "4.2.0-alpha.10"
   resolved "https://registry.yarnpkg.com/babylonjs-gltf2interface/-/babylonjs-gltf2interface-4.2.0-alpha.10.tgz#cca968968661d923ba6fef9192661f6a2b623db2"
