@@ -5,9 +5,9 @@ export class PlayerCamera {
     static alphaDeg: number = 90;
     static betaDeg: number = 140;
     static radius: number = -70;
-    static acceleration: number = 0.05;
-    static maxVelocity: number = 1;
-    static playerLookingRadius: number = 5;
+    static acceleration: number = 0.1;
+    static maxVelocity: number = 10;
+    static playerLookingRadius: number = 1;
 
     private _player: AbstractMesh;
     private _camera: ArcRotateCamera;
