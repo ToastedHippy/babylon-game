@@ -1,10 +1,11 @@
 import { ArcRotateCamera, Nullable, AbstractMesh, Scene, Tools, Vector3 } from "babylonjs";
+import {PlayerCameraInput} from "./player-camera-input";
 
 
 export class PlayerCamera {
     static alphaDeg: number = 90;
-    static betaDeg: number = 140;
-    static radius: number = -70;
+    static betaDeg: number = 130;
+    static radius: number = -60;
     static acceleration: number = 0.1;
     static maxVelocity: number = 10;
     static playerLookingRadius: number = 1;
@@ -26,18 +27,20 @@ export class PlayerCamera {
             this._lookAtPosition,
             scene
         )
-        
+
         this._init();
     }
 
     public attachControl(canvas: HTMLCanvasElement) {
         this._camera.attachControl(canvas);
     }
-    
+
     private _init() {
+        this._camera.inputs.clear();
+        this._camera.inputs.add(new PlayerCameraInput())
         this._scene.registerBeforeRender(() => this._updateLookingPosition())
     }
-    
+
     private _updateLookingPosition() {
         let playerPositionDiff = this._lookAtPosition.subtract(this._player.position);
         let diffDistance = playerPositionDiff.length();
