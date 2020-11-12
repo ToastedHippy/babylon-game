@@ -2,11 +2,12 @@ import {
     Vector3
 } from '@babylonjs/core';
 
-import "babylonjs-loaders";
 import {AssetsLoader} from './models/assets-loader';
 import {Game} from "./models/game";
 import {PlaygroundLevel} from "./models/playground.level";
 import {Level} from "./models/level";
+
+import "@babylonjs/core/Meshes/meshBuilder";
 
 AssetsLoader.rootUrl = 'assets/';
 Level.gravityVector = new Vector3(0, -9.81, 0);

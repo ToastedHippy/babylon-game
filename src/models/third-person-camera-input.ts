@@ -1,0 +1,76 @@
+import {
+    ArcRotateCamera,
+    EventState,
+    ICameraInput,
+    Nullable,
+    Observer,
+    PointerEventTypes,
+    PointerInfo,
+    PointerTouch
+} from "@babylonjs/core";
+
+
+export class ThirdPersonCameraInput implements ICameraInput<ArcRotateCamera> {
+    // @ts-ignore
+    public camera: ArcRotateCamera;
+
+    public canvas: Nullable<HTMLElement> = null;
+    //no need to use requestAnimationFrame. It's a good place for applying calculations if you have to
+    checkInputs?: () => void;
+    private _observer: Nullable<Observer<PointerInfo>> = null;
+
+    getTypeName() {
+        return 'ThirdPersonCameraInput'
+    };
+
+    getClassName() {
+        return 'ThirdPersonCameraClass'
+    };
+
+    getSimpleName() {
+        return 'playerMouse';
+    };
+
+    attachControl(element: HTMLElement, noPreventDefault?: boolean) {
+
+        this.canvas = this.camera.getEngine().getRenderingCanvas();
+
+        this._observer = this.camera.getScene().onPointerObservable.add(
+            this._pointerInput,
+            PointerEventTypes.POINTERDOWN | PointerEventTypes.POINTERMOVE)
+    };
+
+    //detach control must deactivate your input and release all pointers, closures or event listeners
+    detachControl() {
+        if (this._observer) {
+            this.camera.getScene().onPointerObservable.remove(this._observer);
+            this._observer = null;
+        }
+
+        if (this.canvas === document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+
+    } ;
+
+    //this optional function will get called for each rendered frame, if you want to synchronize your input to rendering,
+
+    private _pointerInput = (p: PointerInfo, s: EventState) => {
+        let evt = <PointerEvent>p.event;
+
+        if (p.type === PointerEventTypes.POINTERDOWN && !document.pointerLockElement) {
+
+            try {
+                if (this.canvas) {
+                    this.canvas.requestPointerLock();
+                }
+            } catch (e) {
+            }
+
+
+        } else if (p.type === PointerEventTypes.POINTERMOVE && document.pointerLockElement === this.canvas) {
+            this.camera.inertialAlphaOffset -= evt.movementX / 5000;
+            // this.camera.inertialBetaOffset -= evt.movementY / 5000;
+        }
+    };
+}

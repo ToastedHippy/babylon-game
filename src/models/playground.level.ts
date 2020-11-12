@@ -13,6 +13,7 @@ import {
     Nullable,
     ArcRotateCamera
 } from "@babylonjs/core";
+import {Player} from "./player";
 
 export class PlaygroundLevel extends Level {
 
@@ -23,7 +24,7 @@ export class PlaygroundLevel extends Level {
         this.configure({usePhysics: true});
         this.initLight();
         this.initGround();
-        this.initCamera();
+        this.initPlayer();
         this.initLevelObjects();
     }
 
@@ -68,13 +69,8 @@ export class PlaygroundLevel extends Level {
         this.initObsticle();
     }
 
-    private initCamera() {
-        let camera = new ArcRotateCamera('camera', 90*Math.PI/180, 140*Math.PI/180, -90, Vector3.Zero(), this.scene);
-
-        let canvas = this.scene.getEngine().getRenderingCanvas()
-
-        if (canvas)  {
-            camera.attachControl(canvas);
-        }
+    private initPlayer() {
+        let player = new Player(this.scene);
+        player.position = new Vector3(5, 1.5, 1);
     }
 }

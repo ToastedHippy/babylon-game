@@ -1,4 +1,4 @@
-import { AssetsManager, Scene, AbstractMesh, PhotoDome } from "babylonjs";
+import { AssetsManager, Scene, AbstractMesh, PhotoDome } from "@babylonjs/core";
 
 export class AssetsLoader {
     private static _assetsDefinitions: TypeAssetDefinitions = {};

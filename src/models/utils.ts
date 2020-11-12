@@ -1,4 +1,4 @@
-import { Vector3, AbstractMesh } from "babylonjs";
+import { Vector3, AbstractMesh } from "@babylonjs/core";
 
 export let Utils = {
     vecToLocal(vec: Vector3, mesh: AbstractMesh) {
