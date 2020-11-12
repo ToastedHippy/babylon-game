@@ -1,5 +1,5 @@
 import { ArcRotateCamera, Nullable, AbstractMesh, Scene, Tools, Vector3 } from "babylonjs";
-import {PlayerCameraInput} from "./player-camera-input";
+import {PlayerCameraInput} from "./Player-camera-input";
 
 
 export class PlayerCamera {

@@ -43,7 +43,7 @@ export class PlayerCameraInput implements ICameraInput<ArcRotateCamera> {
     private pointB: Nullable<PointerTouch> = null;
 
 
-    attachControl (element: HTMLElement, noPreventDefault?: boolean) {
+    attachControl (noPreventDefault?: boolean) {
 
         this.canvas = this.camera.getEngine().getRenderingCanvas();
 
@@ -53,8 +53,8 @@ export class PlayerCameraInput implements ICameraInput<ArcRotateCamera> {
     };
 
     //detach control must deactivate your input and release all pointers, closures or event listeners
-    detachControl(element: HTMLElement) {
-        if (element && this._observer) {
+    detachControl() {
+        if (this._observer) {
             this.camera.getScene().onPointerObservable.remove(this._observer);
             this._observer = null;
         }
