@@ -1,22 +1,35 @@
-import {ThirdPersonCamera} from "./third-person-camera";
-import {AbstractMesh, MeshBuilder, Nullable, Scene, Vector3} from "@babylonjs/core";
+import {
+    AbstractMesh,
+    ArcRotateCamera,
+    Camera,
+    MeshBuilder,
+    Nullable,
+    Scene,
+    TargetCamera,
+    Vector3
+} from "@babylonjs/core";
+import {Hoverbot} from "./hoverbot";
+import {ThirdPersonCameraBuilder} from "./third-person-camera-builder";
 
 export class Player {
 
-    private _camera: ThirdPersonCamera;
-    private _mesh: AbstractMesh;
+    private _hoverbot: Nullable<Hoverbot> = null;
+    private _camera: Nullable<ArcRotateCamera> = null;
 
-    public get position() {
-        return this._mesh.position;
-    }
-    public set position(position: Vector3) {
-        this._mesh.position = position;
-        // this._camera.syncPositionWithTarget();
+    constructor() {
     }
 
-    constructor(scene: Scene) {
-        this._mesh = MeshBuilder.CreateBox('player', {size: 3}, scene);
-        this._camera = new ThirdPersonCamera(scene);
-        this._camera.attachTarget(this._mesh);
+    bindHoverBot(bot: Hoverbot) {
+        this._hoverbot = bot;
     }
+
+    bindCamera(camera: ArcRotateCamera) {
+        this._camera = camera;
+
+        if (this._hoverbot) {
+            this._camera.setTarget(this._hoverbot.cameraTarget);
+        }
+
+    }
+
 }

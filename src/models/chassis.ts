@@ -1,9 +1,16 @@
-// import {HoverEngine} from "./hover-engine";
-//
-//
-// class Chassis {
-//
-//     private _hoverEngines: HoverEngine[];
-//     private _stabilizators: any[];
-//     private _controller: any;
-// }
+import {AbstractMesh} from "@babylonjs/core";
+import {ReactiveEngine} from "./reactive-engine";
+
+export class Chassis {
+
+    public mesh: AbstractMesh;
+
+    constructor(mesh: AbstractMesh) {
+        this.mesh = mesh;
+    }
+
+    attachHoverEngine(engine: ReactiveEngine) {
+        this.mesh.addChild(engine.mesh);
+    }
+
+}

@@ -14,6 +14,8 @@ import {
     ArcRotateCamera
 } from "@babylonjs/core";
 import {Player} from "./player";
+import {HoverbotBuilder} from "./hoverbot-builder";
+import {ThirdPersonCameraBuilder} from "./third-person-camera-builder";
 
 export class PlaygroundLevel extends Level {
 
@@ -70,7 +72,20 @@ export class PlaygroundLevel extends Level {
     }
 
     private initPlayer() {
-        let player = new Player(this.scene);
-        player.position = new Vector3(5, 1.5, 1);
+
+        let hoverbot = new HoverbotBuilder({}).build();
+        hoverbot.addToScene(this.scene);
+        let player = new Player();
+
+        let camera = ThirdPersonCameraBuilder.createCamera(this.scene, {alphaDeg: 90, betaDeg: 130, radius: -60});
+
+        player.bindHoverBot(hoverbot);
+        player.bindCamera(camera);
+
+        setInterval(() => {
+            hoverbot.position.x += 0.5;
+        }, 60)
+
     }
+
 }
