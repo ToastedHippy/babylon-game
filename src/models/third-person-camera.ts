@@ -1,32 +1,83 @@
 import {ArcRotateCamera, Nullable, AbstractMesh, Scene, Tools, Vector3, Mesh} from "@babylonjs/core";
 import {ThirdPersonCameraInput} from "./third-person-camera-input";
 
-export interface CameraOptions {
-    alphaDeg: number;
-    betaDeg: number;
-    radius: number;
-}
+export class ThirdPersonCamera {
 
-export class ThirdPersonCameraBuilder {
+    static alphaDeg: number = 90;
+    static betaDeg: number = 143;
+    static radius: number = -60;
+    static acceleration: number = 0.1;
+    static maxVelocity: number = 10;
+    static playerLookingRadius: number = 1;
 
-    static createCamera(scene: Scene, cameraOptions: CameraOptions) {
-        let camera = new ArcRotateCamera('player_camera',
-            Tools.ToRadians(cameraOptions.alphaDeg),
-            Tools.ToRadians(cameraOptions.betaDeg),
-            cameraOptions.radius,
+    private _target: Nullable<AbstractMesh> = null;
+    private _camera: ArcRotateCamera;
+    private _scene: Scene;
+    private _velocity: number = 0;
+
+    constructor (scene: Scene) {
+        this._scene = scene;
+        this._camera = new ArcRotateCamera('player_camera',
+            Tools.ToRadians(ThirdPersonCamera.alphaDeg),
+            Tools.ToRadians(ThirdPersonCamera.betaDeg),
+            ThirdPersonCamera.radius,
             Vector3.Zero(),
             scene
         )
 
-        camera.inputs.clear();
-        camera.inputs.add(new ThirdPersonCameraInput())
+        this._init();
+    }
 
-        let canvas = scene.getEngine().getRenderingCanvas();
+    public setTarget(target: AbstractMesh) {
+        this._target = target;
+        this._camera.setTarget(target);
+    }
+
+    private _init() {
+        let canvas = this._scene.getEngine().getRenderingCanvas();
+
+        this._camera.inputs.clear();
+        this._camera.inputs.add(new ThirdPersonCameraInput())
 
         if (canvas) {
-            camera.attachControl(canvas);
+            this._camera.attachControl(canvas);
         }
 
-        return camera;
+        this._scene.registerBeforeRender(() => this._updatePosition())
     }
+
+    private _updatePosition() {
+
+        if (!this._target) return;
+
+        let lookAtPosition = this._camera.getTarget();
+        let playerPositionDiff = lookAtPosition.subtract(this._target.position);
+        let diffDistance = playerPositionDiff.length();
+
+        if (diffDistance > ThirdPersonCamera.playerLookingRadius) {
+
+            this._velocity += ThirdPersonCamera.acceleration;
+
+            if (this._velocity >= ThirdPersonCamera.maxVelocity) {
+                this._velocity = ThirdPersonCamera.maxVelocity;
+            }
+
+        } else {
+            this._velocity -= ThirdPersonCamera.acceleration;
+
+            if (this._velocity <= 0) {
+                this._velocity = 0;
+            }
+        }
+
+        if (this._velocity > 0) {
+
+            const deltaTime = this._scene.getEngine().getDeltaTime() / 1000;
+
+            const pos = Vector3.Lerp(this._camera.position, this._target.position, this._velocity * deltaTime);
+
+            this._camera.position.set(pos.x, pos.y, pos.z);
+        }
+    }
+
 }

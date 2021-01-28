@@ -15,7 +15,7 @@ import {
 } from "@babylonjs/core";
 import {Player} from "./player";
 import {HoverbotBuilder} from "./hoverbot-builder";
-import {ThirdPersonCameraBuilder} from "./third-person-camera-builder";
+import {ThirdPersonCamera} from "./third-person-camera";
 
 export class PlaygroundLevel extends Level {
 
@@ -74,16 +74,15 @@ export class PlaygroundLevel extends Level {
     private initPlayer() {
 
         let hoverbot = new HoverbotBuilder({}).build();
-        hoverbot.addToScene(this.scene);
-        let player = new Player();
+        let player = new Player(this.scene);
 
-        let camera = ThirdPersonCameraBuilder.createCamera(this.scene, {alphaDeg: 90, betaDeg: 130, radius: -60});
+        let camera = new ThirdPersonCamera(this.scene);
 
         player.bindHoverBot(hoverbot);
         player.bindCamera(camera);
 
         setInterval(() => {
-            hoverbot.position.x += 0.5;
+            hoverbot.position.x += 0.1;
         }, 60)
 
     }

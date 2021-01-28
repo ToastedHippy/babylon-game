@@ -9,21 +9,24 @@ import {
     Vector3
 } from "@babylonjs/core";
 import {Hoverbot} from "./hoverbot";
-import {ThirdPersonCameraBuilder} from "./third-person-camera-builder";
+import {ThirdPersonCamera} from "./third-person-camera";
 
 export class Player {
 
     private _hoverbot: Nullable<Hoverbot> = null;
-    private _camera: Nullable<ArcRotateCamera> = null;
+    private _camera: Nullable<ThirdPersonCamera> = null;
+    private readonly _scene: Scene;
 
-    constructor() {
+    constructor(scene: Scene) {
+        this._scene = scene;
     }
 
     bindHoverBot(bot: Hoverbot) {
         this._hoverbot = bot;
+        this._hoverbot.addToScene(this._scene);
     }
 
-    bindCamera(camera: ArcRotateCamera) {
+    bindCamera(camera: ThirdPersonCamera) {
         this._camera = camera;
 
         if (this._hoverbot) {
